@@ -1,0 +1,7 @@
+/logs/.*
+/.idea
+/.vscode
+runtime/
+tmp/
+app/model/query/
+.air.toml
