@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"api-doc/app/http"
-	"api-doc/app/lib/config"
-	"api-doc/app/model"
+	"easy-doc/app/http"
+	"easy-doc/app/lib/config"
+	"easy-doc/app/model"
 	"fmt"
 	"github.com/spf13/cobra"
 	"gorm.io/gen"

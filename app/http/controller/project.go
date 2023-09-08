@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"api-doc/app/http/response"
-	"api-doc/app/model/request"
-	"api-doc/app/service/project"
+	"easy-doc/app/http/response"
+	"easy-doc/app/model/request"
+	"easy-doc/app/service/project"
 	"github.com/kataras/iris/v12"
 )
 

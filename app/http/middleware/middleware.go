@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"api-doc/app/service/jwt"
+	"easy-doc/app/service/jwt"
 	"errors"
 	"github.com/kataras/iris/v12"
 	"strings"

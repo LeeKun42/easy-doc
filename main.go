@@ -1,6 +1,6 @@
 package main
 
-import "api-doc/app/cmd"
+import "easy-doc/app/cmd"
 
 func main() {
 	cmd.Main.AddCommand(&cmd.GormDto)

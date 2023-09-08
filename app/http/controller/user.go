@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"api-doc/app/http/response"
-	_const "api-doc/app/lib/const"
-	"api-doc/app/model/request"
-	response2 "api-doc/app/model/resp"
-	"api-doc/app/service/jwt"
-	"api-doc/app/service/user"
+	"easy-doc/app/http/response"
+	_const "easy-doc/app/lib/const"
+	"easy-doc/app/model/request"
+	response2 "easy-doc/app/model/resp"
+	"easy-doc/app/service/jwt"
+	"easy-doc/app/service/user"
 	"github.com/kataras/iris/v12"
 	"strings"
 )

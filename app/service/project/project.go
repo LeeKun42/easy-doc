@@ -1,11 +1,11 @@
 package project
 
 import (
-	_const "api-doc/app/lib/const"
-	"api-doc/app/model"
-	"api-doc/app/model/dto"
-	"api-doc/app/model/request"
-	"api-doc/app/model/resp"
+	_const "easy-doc/app/lib/const"
+	"easy-doc/app/model"
+	"easy-doc/app/model/dto"
+	"easy-doc/app/model/request"
+	"easy-doc/app/model/resp"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"

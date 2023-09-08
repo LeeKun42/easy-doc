@@ -1,11 +1,11 @@
 package user
 
 import (
-	"api-doc/app/lib/hash"
-	"api-doc/app/model"
-	"api-doc/app/model/dto"
-	"api-doc/app/model/request"
-	"api-doc/app/service/jwt"
+	"easy-doc/app/lib/hash"
+	"easy-doc/app/model"
+	"easy-doc/app/model/dto"
+	"easy-doc/app/model/request"
+	"easy-doc/app/service/jwt"
 	"errors"
 	"gorm.io/gorm"
 	"time"

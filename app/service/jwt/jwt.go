@@ -1,8 +1,8 @@
 package jwt
 
 import (
-	"api-doc/app/lib/redis"
 	"context"
+	"easy-doc/app/lib/redis"
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"

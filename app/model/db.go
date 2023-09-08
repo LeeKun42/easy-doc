@@ -1,8 +1,8 @@
 package model
 
 import (
-	"api-doc/app/lib/log"
 	"context"
+	"easy-doc/app/lib/log"
 	"fmt"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"

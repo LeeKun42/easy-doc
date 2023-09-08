@@ -1,10 +1,10 @@
 package http
 
 import (
-	"api-doc/app/http/controller"
-	"api-doc/app/http/middleware"
-	"api-doc/app/lib/log"
 	"context"
+	"easy-doc/app/http/controller"
+	"easy-doc/app/http/middleware"
+	"easy-doc/app/lib/log"
 	"fmt"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/middleware/cors"
