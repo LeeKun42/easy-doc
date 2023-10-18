@@ -4,6 +4,7 @@ import (
 	"easy-doc/app/http/response"
 	"easy-doc/app/model/request"
 	"easy-doc/app/service/project"
+	"encoding/json"
 	"github.com/kataras/iris/v12"
 )
 
@@ -139,7 +140,7 @@ func (pc *ProjectController) CreateDirectory(context iris.Context) {
 	projectId, _ := context.Params().GetInt("project_id")
 	params.ProjectID = projectId
 	loginUserId, _ := context.Values().GetInt("user_id")
-	err := pc.ProjectService.CreateDirectory(params, loginUserId)
+	_, err := pc.ProjectService.CreateDirectory(params, loginUserId)
 	if err != nil {
 		response.Fail(context, err.Error())
 	} else {
@@ -250,4 +251,23 @@ func (pc *ProjectController) GetApi(context iris.Context) {
 	} else {
 		response.Success(context, api)
 	}
+}
+
+func (pc *ProjectController) ImportApis(context iris.Context) {
+	projectId, _ := context.Params().GetInt("project_id")
+	file, info, err := context.FormFile("api")
+	if err != nil {
+		response.Fail(context, err.Error())
+		return
+	}
+	txt := make([]byte, info.Size, info.Size)
+	file.Read(txt)
+	var data []request.ProjectDirectory
+	json.Unmarshal(txt, &data)
+	err = pc.ProjectService.ImportApis(projectId, data)
+	if err != nil {
+		response.Fail(context, err.Error())
+		return
+	}
+	response.Success(context, "ok")
 }

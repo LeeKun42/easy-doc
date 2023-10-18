@@ -6,9 +6,12 @@ import (
 	"easy-doc/app/model/dto"
 	"easy-doc/app/model/request"
 	"easy-doc/app/model/resp"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kataras/iris/v12"
 	"gorm.io/gorm"
+	"gorm.io/gorm/utils"
 	"time"
 )
 
@@ -190,7 +193,7 @@ func (service *Service) GetDirectory(directoryId int, userId int) (dto.ProjectDi
 func (service *Service) GetDirectories(projectId int, userId int) ([]resp.Directory, error) {
 	var directories []dto.ProjectDirectory
 	//获取所有目录
-	result := service.DB.Table(dto.TableNameProjectDirectory).Where("project_id", projectId).Select("id", "name", "parent_id", "seq").Order("seq").Find(&directories)
+	result := service.DB.Table(dto.TableNameProjectDirectory).Where("project_id", projectId).Select("id", "name", "parent_id", "seq").Order("seq ASC").Find(&directories)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		fmt.Printf(result.Error.Error())
 	}
@@ -210,11 +213,11 @@ func treeDirs(currentDir *resp.Directory, directories []dto.ProjectDirectory) {
 	}
 }
 
-func (service *Service) CreateDirectory(params request.ProjectDirectoryParams, userId int) error {
+func (service *Service) CreateDirectory(params request.ProjectDirectoryParams, userId int) (int, error) {
 	var pdDto dto.ProjectDirectory
 	service.DB.Table(pdDto.TableName()).Where("name", params.Name).Where("project_id", params.ProjectID).First(&pdDto)
 	if pdDto.ID != 0 {
-		return errors.New("已创建过同名的目录，请修改名称后重试")
+		return pdDto.ID, errors.New("已创建过同名的目录，请修改名称后重试")
 	}
 	pdDto = dto.ProjectDirectory{
 		ProjectID: params.ProjectID,
@@ -225,9 +228,9 @@ func (service *Service) CreateDirectory(params request.ProjectDirectoryParams, u
 	}
 	result := service.DB.Create(&pdDto)
 	if result.Error != nil {
-		return errors.New("创建失败")
+		return 0, errors.New("创建失败")
 	}
-	return nil
+	return pdDto.ID, nil
 }
 
 func (service *Service) UpdateDirectory(params request.ProjectDirectoryParams, userId int) error {
@@ -270,7 +273,7 @@ func (service *Service) GetApis(projectId int, userId int) ([]resp.Directory, er
 	var directories []dto.ProjectDirectory
 	//获取所有目录
 	result := service.DB.Table(dto.TableNameProjectDirectory).Where("project_id", projectId).Select("id", "name", "parent_id", "seq").Preload("Apis", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "directory_id", "name", "seq").Order("project_apis.seq")
+		return db.Select("id", "directory_id", "name", "seq").Order("project_apis.seq ASC")
 	}).Order("seq").Find(&directories)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		fmt.Printf(result.Error.Error())
@@ -311,6 +314,7 @@ func (service *Service) CreateApi(params request.ProjectApiParams, userId int) (
 		RequestPath:    params.RequestPath,
 		RequestBody:    params.RequestBody,
 		ResponseBody:   params.ResponseBody,
+		Seq:            params.Seq,
 		Desc:           params.Desc,
 	}
 	result := service.DB.Create(&apiDto)
@@ -337,6 +341,7 @@ func (service *Service) UpdateApi(params request.ProjectApiParams, userId int) e
 	apiDto.RequestPath = params.RequestPath
 	apiDto.RequestBody = params.RequestBody
 	apiDto.ResponseBody = params.ResponseBody
+	apiDto.Seq = params.Seq
 	apiDto.Desc = params.Desc
 	result := service.DB.Table(apiDto.TableName()).Where("id", params.ID).Updates(apiDto)
 	if result.Error != nil {
@@ -379,4 +384,170 @@ func (service *Service) GetApi(id int) (dto.ProjectAPI, error) {
 		return apiDto, errors.New("接口不存在")
 	}
 	return apiDto, nil
+}
+
+func (service *Service) ImportApis(projectID int, dirs []request.ProjectDirectory) error {
+	dirSeq := 10
+	for _, dir := range dirs {
+		params := request.ProjectDirectoryParams{
+			ProjectID: projectID,
+			Name:      dir.Name,
+			ParentID:  0,
+			Seq:       dirSeq,
+			Desc:      "",
+		}
+		dirId, err := service.CreateDirectory(params, 0)
+		if err != nil {
+			fmt.Println("CreateDirectory err", err)
+		}
+		dirSeq += 10
+		apiSeq := 10
+		for _, api := range dir.Apis {
+			apiParams := request.ProjectApiParams{
+				ProjectID:      projectID,
+				DirectoryID:    dirId,
+				Name:           api.Name,
+				Path:           api.Path,
+				Method:         api.Method,
+				Desc:           api.Desc,
+				Seq:            apiSeq,
+				RequestHeaders: "[]",
+				RequestPath:    "[]",
+				RequestQuery:   "[]",
+				RequestBody:    "[]",
+				ResponseBody:   "[]",
+			}
+			if api.Method == "GET" && len(api.Query) > 0 {
+				var query []iris.Map
+				for _, queryParams := range api.Query {
+					item := iris.Map{
+						"name":     queryParams.Name,
+						"required": queryParams.Required,
+						"test_val": queryParams.Example,
+						"desc":     queryParams.Desc,
+					}
+					query = append(query, item)
+				}
+				rq, _ := json.Marshal(query)
+				apiParams.RequestQuery = string(rq)
+			} else if api.Method == "POST" {
+				if api.ReqBodyType == "form" && len(api.ReqBodyForm) > 0 {
+					var body []iris.Map
+					for _, queryParams := range api.ReqBodyForm {
+						item := iris.Map{
+							"name":     queryParams.Name,
+							"required": queryParams.Required,
+							"test_val": queryParams.Example,
+							"desc":     queryParams.Desc,
+						}
+						body = append(body, item)
+					}
+					bd, _ := json.Marshal(body)
+					apiParams.RequestBody = string(bd)
+				} else if api.ReqBodyType == "json" && api.ReqBody != "" {
+					var abp request.ApiBodyParams
+					err := json.Unmarshal([]byte(api.ReqBody), &abp)
+					if err != nil {
+						fmt.Println("json.Unmarshal ReqBody", err)
+					}
+					body := service.jsonConv(abp.Properties, abp.Required)
+					bd, _ := json.Marshal(body)
+					apiParams.RequestBody = string(bd)
+				}
+			}
+
+			if len(api.Headers) > 0 {
+				var headers []iris.Map
+				for _, headerParams := range api.Headers {
+					item := iris.Map{
+						"name":     headerParams.Name,
+						"required": headerParams.Required,
+						"test_val": headerParams.Value,
+						"desc":     headerParams.Desc,
+					}
+					headers = append(headers, item)
+				}
+				rh, _ := json.Marshal(headers)
+				apiParams.RequestHeaders = string(rh)
+			}
+
+			if api.ResBody != "" {
+				var rbp request.ApiBodyParams
+				err := json.Unmarshal([]byte(api.ResBody), &rbp)
+				if err != nil {
+					fmt.Println("json.Unmarshal ResBody", api.Path, err)
+				}
+				if len(rbp.Properties) > 0 {
+					resBody := service.jsonConv(rbp.Properties, rbp.Required)
+					rbd, _ := json.Marshal(resBody)
+					apiParams.ResponseBody = string(rbd)
+				}
+			}
+
+			_, err = service.CreateApi(apiParams, 0)
+			if err != nil {
+				fmt.Println("CreateApi err", err)
+			}
+			apiSeq += 10
+		}
+
+	}
+	return nil
+}
+
+func (service *Service) jsonConv(props map[string]request.Property, required []string) []request.JsonParams {
+	var res []request.JsonParams
+	for key, prop := range props {
+		if prop.Type == "array" {
+			item := request.JsonParams{
+				Name:          key,
+				Type:          prop.Type,
+				Desc:          prop.Desc,
+				SubType:       prop.Item.Type,
+				IsPlaceholder: false,
+				Required:      utils.Contains(required, key),
+				TestVal:       "",
+			}
+			var subs []request.JsonParams
+			subItem := request.JsonParams{
+				Name:          "items",
+				Type:          prop.Item.Type,
+				Desc:          prop.Desc,
+				SubType:       "",
+				IsPlaceholder: true,
+				Required:      false,
+				TestVal:       "",
+				Children:      service.jsonConv(prop.Item.Properties, prop.Item.Required),
+			}
+			subs = append(subs, subItem)
+			item.Children = subs
+			res = append(res, item)
+		} else if prop.Type == "object" {
+			item := request.JsonParams{
+				Name:          key,
+				Type:          prop.Type,
+				Desc:          prop.Desc,
+				SubType:       "",
+				IsPlaceholder: false,
+				Required:      utils.Contains(required, key),
+				TestVal:       "",
+				Children:      service.jsonConv(prop.Properties, prop.Required),
+			}
+			res = append(res, item)
+		} else {
+			item := request.JsonParams{
+				Name:          key,
+				Type:          prop.Type,
+				Desc:          prop.Desc,
+				SubType:       "",
+				IsPlaceholder: false,
+				Required:      utils.Contains(required, key),
+				TestVal:       "",
+				Children:      []request.JsonParams{},
+			}
+			res = append(res, item)
+		}
+
+	}
+	return res
 }

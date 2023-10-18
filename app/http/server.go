@@ -65,6 +65,7 @@ func StartWebServer() {
 
 			project.Get("/{project_id:int}/apis", projectController.ListApi)
 			project.Post("/{project_id:int}/apis", projectController.CreateApi)
+			project.Put("/{project_id:int}/apis", projectController.ImportApis)
 			project.Patch("/{project_id:int}/apis/{api_id:int}", projectController.UpdateApi)
 			project.Post("/{project_id:int}/apis/{api_id:int}", projectController.CopyApi)
 			project.Delete("/{project_id:int}/apis/{api_id:int}", projectController.DeleteApi)
