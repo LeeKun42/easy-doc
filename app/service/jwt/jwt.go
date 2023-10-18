@@ -38,7 +38,7 @@ func (js *Service) Create(userId int, refreshTtl int64) string {
 		userId,
 		refreshTtl,
 		jwt.RegisteredClaims{
-			Issuer:    "iris-app",
+			Issuer:    "easy-doc",
 			Subject:   "client",
 			Audience:  nil,
 			ExpiresAt: jwt.NewNumericDate(exp),
